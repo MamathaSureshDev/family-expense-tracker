@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 
 // Replace these two values with the Project URL and publishable key from Supabase.
 // Never put a secret/service-role key in this file.
-const supabaseUrl = 'PASTE_YOUR_SUPABASE_URL_HERE'
-const supabasePublishableKey = 'PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY_HERE'
+const supabaseUrl = 'https://jcoxjaxmbfnluvahyhoo.supabase.co'
+const supabasePublishableKey = 'sb_publishable_-c8x738tUefoy8vxFb6dnw_C6s4oEmE'
 
 export const isConfigured =
   supabaseUrl.startsWith('https://') &&
