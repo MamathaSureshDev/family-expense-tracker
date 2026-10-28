@@ -133,10 +133,21 @@ export default function App() {
       <section className="panel history-panel">
         <div className="section-heading"><div><p className="eyebrow">OVERVIEW</p><h3>Expense history</h3></div><button className="icon-button" onClick={() => void loadExpenses()} title="Refresh"><RefreshCw size={17}/></button></div>
         <div className="filter-row"><label>Monthly view<input type="month" value={month} onChange={e => setMonth(e.target.value)}/></label><span>{monthExpenses.length} entries</span></div>
-        <div className="expense-list">
+        <div className="expense-table-wrap">
           {loading ? <div className="empty-state">Loading shared expenses…</div> :
             monthExpenses.length === 0 ? <div className="empty-state"><div className="empty-icon"><CalendarDays size={22}/></div><strong>No expenses this month</strong><p>Add the first entry using the form.</p></div> :
-            monthExpenses.map(e => <article className="expense-row" key={e.id}><div className="expense-date"><strong>{new Date(e.expense_date + 'T12:00:00').getDate().toString().padStart(2,'0')}</strong><span>{new Date(e.expense_date + 'T12:00:00').toLocaleDateString('en-IN',{month:'short'})}</span></div><div className="expense-main"><strong>{e.title}</strong><span>{e.category} · Paid by {e.paid_by}</span><small>Split: {(e.split_between || []).join(', ') || 'Manjula, Mamatha, Mahesh'}</small></div><div className="expense-end"><strong>{money(Number(e.amount))}</strong><button className="delete-button" onClick={() => void deleteExpense(e)} aria-label={`Delete ${e.title}`} title="Delete expense"><Trash2 size={15}/></button></div></article>)
+            <table className="expense-table">
+              <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Paid by</th><th>Split between</th><th className="amount-cell">Amount</th><th>Action</th></tr></thead>
+              <tbody>{monthExpenses.map(e => <tr key={e.id}>
+                <td>{new Date(e.expense_date + 'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</td>
+                <td className="description-cell">{e.title}{e.notes && <small>{e.notes}</small>}</td>
+                <td>{e.category}</td>
+                <td>{e.paid_by}</td>
+                <td>{(e.split_between || []).join(', ') || 'Manjula, Mamatha, Mahesh'}</td>
+                <td className="amount-cell">{money(Number(e.amount))}</td>
+                <td><button className="delete-button" onClick={() => void deleteExpense(e)} aria-label={`Delete ${e.title}`} title="Delete expense"><Trash2 size={15}/></button></td>
+              </tr>)}</tbody>
+            </table>
           }
         </div>
         <div className="list-footer"><span>Showing {monthExpenses.length} of {expenses.length} expenses</span><span>Stored online <span className="online-dot"></span></span></div>
