@@ -34,6 +34,8 @@ export default function App() {
   const [selectedPayer, setSelectedPayer] = useState('All')
   const [sortKey, setSortKey] = useState<'expense_date' | 'title' | 'category' | 'paid_by' | 'split_between' | 'amount'>('expense_date')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState<number | 'all'>(10)
   const [saving, setSaving] = useState(false)
 
   async function loadExpenses() {
@@ -58,7 +60,13 @@ export default function App() {
     else comparison = String(a[sortKey] ?? '').localeCompare(String(b[sortKey] ?? ''), undefined, { numeric: true, sensitivity: 'base' })
     return sortDirection === 'asc' ? comparison : -comparison
   }), [monthExpenses, sortKey, sortDirection])
+  const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(sortedMonthExpenses.length / pageSize))
+  const safePage = Math.min(currentPage, totalPages)
+  const visibleExpenses = pageSize === 'all' ? sortedMonthExpenses : sortedMonthExpenses.slice((safePage - 1) * pageSize, safePage * pageSize)
+  const firstVisible = sortedMonthExpenses.length === 0 ? 0 : pageSize === 'all' ? 1 : (safePage - 1) * pageSize + 1
+  const lastVisible = pageSize === 'all' ? sortedMonthExpenses.length : Math.min(safePage * pageSize, sortedMonthExpenses.length)
   function changeSort(key: typeof sortKey) {
+    setCurrentPage(1)
     if (sortKey === key) setSortDirection(current => current === 'asc' ? 'desc' : 'asc')
     else { setSortKey(key); setSortDirection(key === 'expense_date' || key === 'amount' ? 'desc' : 'asc') }
   }
@@ -153,15 +161,15 @@ export default function App() {
 
       <section className="panel history-panel">
         <div className="section-heading"><div><p className="eyebrow">OVERVIEW</p><h3>Expense history</h3></div><button className="icon-button" onClick={() => void loadExpenses()} title="Refresh"><RefreshCw size={17}/></button></div>
-        <div className="filter-row table-filters"><label>Monthly view<input type="month" value={month} onChange={e => setMonth(e.target.value)}/></label><label>Show total paid by<select value={selectedPayer} onChange={e => setSelectedPayer(e.target.value)}><option value="All">All family members</option>{PEOPLE.map(p => <option key={p} value={p}>{p}</option>)}</select></label><span>{monthExpenses.length} entries</span></div>
-        <div className="payer-total-card"><div><span>{selectedPayer === 'All' ? 'Total paid by everyone' : `Total paid by ${selectedPayer}`}</span><strong>{money(selectedPayerTotal)}</strong><small>{selectedPayerCount} expense{selectedPayerCount === 1 ? '' : 's'} in the selected month</small></div><div className="payer-total-icon"><Wallet size={19}/></div></div>
+        <div className="filter-row table-filters"><label>Monthly view<input type="month" value={month} onChange={e => { setMonth(e.target.value); setCurrentPage(1) }}/></label><label>Show total paid by<select value={selectedPayer} onChange={e => setSelectedPayer(e.target.value)}><option value="All">All family members</option>{PEOPLE.map(p => <option key={p} value={p}>{p}</option>)}</select></label><span>{monthExpenses.length} entries</span></div>
+        <div className="payer-total-card"><div><span>{selectedPayer === 'All' ? 'Total paid by everyone' : `Total paid by ${selectedPayer}`}</span><strong>{money(selectedPayerTotal)}</strong><small>{selectedPayerCount} expense{selectedPayerCount === 1 ? '' : 's'} across the entire selected month (all pages)</small></div><div className="payer-total-icon"><Wallet size={19}/></div></div>
         <p className="sort-hint">Click a column heading to sort the table.</p>
         <div className="expense-table-wrap">
           {loading ? <div className="empty-state">Loading shared expenses…</div> :
             monthExpenses.length === 0 ? <div className="empty-state"><div className="empty-icon"><CalendarDays size={22}/></div><strong>No expenses this month</strong><p>Add the first entry using the form.</p></div> :
             <table className="expense-table">
               <thead><tr>{([['expense_date','Date'],['title','Description'],['category','Category'],['paid_by','Paid by'],['split_between','Split between'],['amount','Amount']] as const).map(([key, label]) => <th key={key} className={key === 'amount' ? 'amount-cell' : undefined}><button className="sort-button" onClick={() => changeSort(key)}>{label}{sortIcon(key)}</button></th>)}<th>Action</th></tr></thead>
-              <tbody>{sortedMonthExpenses.map(e => <tr key={e.id}>
+              <tbody>{visibleExpenses.map(e => <tr key={e.id}>
                 <td>{new Date(e.expense_date + 'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</td>
                 <td className="description-cell">{e.title}{e.notes && <small>{e.notes}</small>}</td>
                 <td>{e.category}</td>
@@ -173,7 +181,16 @@ export default function App() {
             </table>
           }
         </div>
-        <div className="list-footer"><span>Showing {monthExpenses.length} of {expenses.length} expenses</span><span>Stored online <span className="online-dot"></span></span></div>
+        <div className="pagination-bar">
+          <div className="pagination-summary">Showing <strong>{firstVisible}–{lastVisible}</strong> of <strong>{sortedMonthExpenses.length}</strong> entries for the selected month</div>
+          <div className="pagination-controls">
+            <label>Rows per page<select value={pageSize} onChange={e => { setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value)); setCurrentPage(1) }}><option value={10}>10</option><option value={25}>25</option><option value={50}>50</option><option value="all">All</option></select></label>
+            <button className="page-button" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}>Previous</button>
+            <span className="page-number">Page {safePage} of {totalPages}</span>
+            <button className="page-button" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}>Next</button>
+          </div>
+        </div>
+        <div className="list-footer"><span>Showing {monthExpenses.length} of {expenses.length} total recorded expenses for this month filter</span><span>Stored online <span className="online-dot"></span></span></div>
       </section>
     </div>
 
