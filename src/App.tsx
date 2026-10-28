@@ -35,7 +35,7 @@ export default function App() {
   const [sortKey, setSortKey] = useState<'expense_date' | 'title' | 'category' | 'paid_by' | 'split_between' | 'amount'>('expense_date')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState<number | 'all'>(10)
+  const [pageSize, setPageSize] = useState<'10' | '25' | '50' | 'all'>('10')
   const [saving, setSaving] = useState(false)
 
   async function loadExpenses() {
@@ -60,11 +60,12 @@ export default function App() {
     else comparison = String(a[sortKey] ?? '').localeCompare(String(b[sortKey] ?? ''), undefined, { numeric: true, sensitivity: 'base' })
     return sortDirection === 'asc' ? comparison : -comparison
   }), [monthExpenses, sortKey, sortDirection])
-  const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(sortedMonthExpenses.length / pageSize))
+  const pageSizeNumber = pageSize === 'all' ? sortedMonthExpenses.length || 1 : Number(pageSize)
+  const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(sortedMonthExpenses.length / pageSizeNumber))
   const safePage = Math.min(currentPage, totalPages)
-  const visibleExpenses = pageSize === 'all' ? sortedMonthExpenses : sortedMonthExpenses.slice((safePage - 1) * pageSize, safePage * pageSize)
-  const firstVisible = sortedMonthExpenses.length === 0 ? 0 : pageSize === 'all' ? 1 : (safePage - 1) * pageSize + 1
-  const lastVisible = pageSize === 'all' ? sortedMonthExpenses.length : Math.min(safePage * pageSize, sortedMonthExpenses.length)
+  const visibleExpenses = pageSize === 'all' ? sortedMonthExpenses : sortedMonthExpenses.slice((safePage - 1) * pageSizeNumber, safePage * pageSizeNumber)
+  const firstVisible = sortedMonthExpenses.length === 0 ? 0 : pageSize === 'all' ? 1 : (safePage - 1) * pageSizeNumber + 1
+  const lastVisible = pageSize === 'all' ? sortedMonthExpenses.length : Math.min(safePage * pageSizeNumber, sortedMonthExpenses.length)
   function changeSort(key: typeof sortKey) {
     setCurrentPage(1)
     if (sortKey === key) setSortDirection(current => current === 'asc' ? 'desc' : 'asc')
@@ -184,7 +185,7 @@ export default function App() {
         <div className="pagination-bar">
           <div className="pagination-summary">Showing <strong>{firstVisible}–{lastVisible}</strong> of <strong>{sortedMonthExpenses.length}</strong> entries for the selected month</div>
           <div className="pagination-controls">
-            <label>Rows per page<select value={pageSize} onChange={e => { setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value)); setCurrentPage(1) }}><option value={10}>10</option><option value={25}>25</option><option value={50}>50</option><option value="all">All</option></select></label>
+            <label>Rows per page<select value={pageSize} onChange={e => { setPageSize(e.target.value as '10' | '25' | '50' | 'all'); setCurrentPage(1) }}><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="all">All</option></select></label>
             <button className="page-button" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}>Previous</button>
             <span className="page-number">Page {safePage} of {totalPages}</span>
             <button className="page-button" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}>Next</button>
