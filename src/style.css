@@ -32,3 +32,16 @@
 .sort-button:hover{color:#244b3b}
 .sort-button svg{opacity:.65;flex-shrink:0}
 @media(max-width:520px){.table-filters label{width:100%;max-width:100%}.payer-total-card strong{font-size:21px}}
+
+/* Pagination controls for the expense table */
+.pagination-bar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:14px 2px 4px;border-top:1px solid #f0eee8;margin-top:10px}
+.pagination-summary{font-size:11px;color:#7f8579}
+.pagination-summary strong{color:#3d463b}
+.pagination-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pagination-controls label{display:flex;align-items:center;gap:6px;font-size:11px;color:#777c73}
+.pagination-controls select{width:auto;padding:7px 8px;font-size:11px}
+.page-button{border:1px solid #e5e5dc;background:#fff;border-radius:8px;padding:8px 11px;font:600 11px 'DM Sans',sans-serif;color:#3c4b3c;cursor:pointer}
+.page-button:hover:not(:disabled){background:#f3f6f0;border-color:#cdd9c9}
+.page-button:disabled{opacity:.4;cursor:not-allowed}
+.page-number{font-size:11px;color:#74796f;white-space:nowrap}
+@media(max-width:520px){.pagination-bar{align-items:flex-start}.pagination-controls{width:100%;gap:6px}.pagination-controls label{width:100%;justify-content:space-between}.pagination-controls select{min-width:72px}.page-button{flex:1}.page-number{flex:1;text-align:center}}
