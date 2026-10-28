@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, Plus, Trash2, Wallet, Users, CalendarDays, RefreshCw, AlertTriangle } from 'lucide-react'
+import { Download, Plus, Trash2, Wallet, Users, CalendarDays, RefreshCw, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { isConfigured, supabase } from './lib/supabase'
 
 type Expense = {
@@ -31,6 +31,9 @@ export default function App() {
   const [splitBetween, setSplitBetween] = useState<string[]>([...PEOPLE])
   const [notes, setNotes] = useState('')
   const [month, setMonth] = useState(today().slice(0, 7))
+  const [selectedPayer, setSelectedPayer] = useState('All')
+  const [sortKey, setSortKey] = useState<'expense_date' | 'title' | 'category' | 'paid_by' | 'split_between' | 'amount'>('expense_date')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [saving, setSaving] = useState(false)
 
   async function loadExpenses() {
@@ -45,6 +48,24 @@ export default function App() {
 
   const monthExpenses = useMemo(() => expenses.filter(e => e.expense_date.startsWith(month)), [expenses, month])
   const monthTotal = monthExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
+  const selectedPayerTotal = selectedPayer === 'All' ? monthTotal : monthExpenses.filter(e => e.paid_by === selectedPayer).reduce((sum, e) => sum + Number(e.amount), 0)
+  const selectedPayerCount = selectedPayer === 'All' ? monthExpenses.length : monthExpenses.filter(e => e.paid_by === selectedPayer).length
+  const sortedMonthExpenses = useMemo(() => [...monthExpenses].sort((a, b) => {
+    let comparison = 0
+    if (sortKey === 'amount') comparison = Number(a.amount) - Number(b.amount)
+    else if (sortKey === 'split_between') comparison = (a.split_between || []).join(', ').localeCompare((b.split_between || []).join(', '))
+    else if (sortKey === 'expense_date') comparison = a.expense_date.localeCompare(b.expense_date)
+    else comparison = String(a[sortKey] ?? '').localeCompare(String(b[sortKey] ?? ''), undefined, { numeric: true, sensitivity: 'base' })
+    return sortDirection === 'asc' ? comparison : -comparison
+  }), [monthExpenses, sortKey, sortDirection])
+  function changeSort(key: typeof sortKey) {
+    if (sortKey === key) setSortDirection(current => current === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDirection(key === 'expense_date' || key === 'amount' ? 'desc' : 'asc') }
+  }
+  function sortIcon(key: typeof sortKey) {
+    if (sortKey !== key) return <ArrowUpDown size={12} />
+    return sortDirection === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+  }
   const totalAll = expenses.reduce((sum, e) => sum + Number(e.amount), 0)
   const balances = useMemo(() => {
     const result: Record<string, number> = Object.fromEntries(PEOPLE.map(p => [p, 0]))
@@ -132,13 +153,15 @@ export default function App() {
 
       <section className="panel history-panel">
         <div className="section-heading"><div><p className="eyebrow">OVERVIEW</p><h3>Expense history</h3></div><button className="icon-button" onClick={() => void loadExpenses()} title="Refresh"><RefreshCw size={17}/></button></div>
-        <div className="filter-row"><label>Monthly view<input type="month" value={month} onChange={e => setMonth(e.target.value)}/></label><span>{monthExpenses.length} entries</span></div>
+        <div className="filter-row table-filters"><label>Monthly view<input type="month" value={month} onChange={e => setMonth(e.target.value)}/></label><label>Show total paid by<select value={selectedPayer} onChange={e => setSelectedPayer(e.target.value)}><option value="All">All family members</option>{PEOPLE.map(p => <option key={p} value={p}>{p}</option>)}</select></label><span>{monthExpenses.length} entries</span></div>
+        <div className="payer-total-card"><div><span>{selectedPayer === 'All' ? 'Total paid by everyone' : `Total paid by ${selectedPayer}`}</span><strong>{money(selectedPayerTotal)}</strong><small>{selectedPayerCount} expense{selectedPayerCount === 1 ? '' : 's'} in the selected month</small></div><div className="payer-total-icon"><Wallet size={19}/></div></div>
+        <p className="sort-hint">Click a column heading to sort the table.</p>
         <div className="expense-table-wrap">
           {loading ? <div className="empty-state">Loading shared expenses…</div> :
             monthExpenses.length === 0 ? <div className="empty-state"><div className="empty-icon"><CalendarDays size={22}/></div><strong>No expenses this month</strong><p>Add the first entry using the form.</p></div> :
             <table className="expense-table">
-              <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Paid by</th><th>Split between</th><th className="amount-cell">Amount</th><th>Action</th></tr></thead>
-              <tbody>{monthExpenses.map(e => <tr key={e.id}>
+              <thead><tr>{([['expense_date','Date'],['title','Description'],['category','Category'],['paid_by','Paid by'],['split_between','Split between'],['amount','Amount']] as const).map(([key, label]) => <th key={key} className={key === 'amount' ? 'amount-cell' : undefined}><button className="sort-button" onClick={() => changeSort(key)}>{label}{sortIcon(key)}</button></th>)}<th>Action</th></tr></thead>
+              <tbody>{sortedMonthExpenses.map(e => <tr key={e.id}>
                 <td>{new Date(e.expense_date + 'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</td>
                 <td className="description-cell">{e.title}{e.notes && <small>{e.notes}</small>}</td>
                 <td>{e.category}</td>
